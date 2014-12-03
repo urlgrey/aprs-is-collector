@@ -18,6 +18,7 @@ type RawAprsPacket struct {
 }
 
 func main() {
+	apiKey := os.Getenv("APRS_DASHBOARD_API_KEY")
 	aprsDashHost := os.Getenv("APRS_DASHBOARD_HOST")
 	if aprsDashHost == "" {
 		log.Fatal("Set the APRS_DASHBOARD_HOST environment variable")
@@ -33,17 +34,20 @@ func main() {
 		if err == io.EOF {
 			break
 		}
-		sendPacketToDashboard(aprsDashUrl, line)
+		sendPacketToDashboard(aprsDashUrl, apiKey, line)
 	}
 }
 
-func sendPacketToDashboard(aprsDashUrl string, line string) {
+func sendPacketToDashboard(aprsDashUrl string, apiKey string, line string) {
 	log.Println("Sending: ", line)
 	packet := RawAprsPacket{Data: line, IsAX25: false}
 	body, _ := json.Marshal(packet)
 
 	req, err := http.NewRequest("PUT", aprsDashUrl, bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
+	if apiKey != "" {
+		req.Header.Set("X-API-KEY", apiKey)
+	}
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
